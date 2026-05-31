@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI SQL Agent Studio</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="workspace-shell">
+      <header class="topbar">
+        <div class="brand-block">
+          <div class="brand-logo">AI</div>
+          <div>
+            <p class="eyebrow">PostgreSQL Agent Workspace</p>
+            <h1>SQL Agent Studio</h1>
+          </div>
+        </div>
+        <div class="top-actions">
+          <label class="db-switcher" for="databaseType">
+            <span>Database</span>
+            <select id="databaseType">
+              <option value="postgresql" selected>PostgreSQL</option>
+              <option value="mssql">MSSQL Server</option>
+            </select>
+          </label>
+          <div id="status" class="status">Ready</div>
+        </div>
+      </header>
+
+      <section class="workspace-grid">
+        <aside class="agent-chat panel">
+          <div class="panel-header compact">
+            <div>
+              <p class="eyebrow">shared-memory agent</p>
+              <h2>Agent Chat</h2>
+              <p>Ask in English. The same agent helps write, review, and run SQL.</p>
+            </div>
+          </div>
+          <div id="chatMessages" class="chat-messages">
+            <div class="message assistant">Hi, I can convert English into PostgreSQL, explain your schema, and remember this session while we work.</div>
+          </div>
+          <div class="chat-input-row">
+            <textarea id="chatInput" rows="3" placeholder="Ask the agent to write SQL, explain results, or fix a query..."></textarea>
+            <button id="sendChatBtn">Send</button>
+          </div>
+        </aside>
+
+        <section class="center-workspace">
+          <section class="prompt-card panel">
+            <div>
+              <p class="eyebrow">English → SQL</p>
+              <h2>Describe what you need, then approve before execution.</h2>
+            </div>
+            <div class="english-box">
+              <input id="englishInput" type="text" value="Show the first 20 rows from a table" />
+              <button id="generateBtn">Generate SQL</button>
+            </div>
+          </section>
+
+          <section class="sql-pad panel">
+            <div class="panel-header editor-heading">
+              <div>
+                <p class="eyebrow">scrollable SQL pad</p>
+                <h2>Query Editor</h2>
+              </div>
+              <div class="button-row">
+                <button id="fixBtn" class="ghost-btn">AI Review</button>
+                <button id="runBtn">Verify & Run</button>
+              </div>
+            </div>
+            <textarea id="sqlEditor" spellcheck="false">SELECT *
+FROM your_table
+LIMIT 100;</textarea>
+          </section>
+
+          <section class="bottom-grid">
+            <section class="panel suggestions-panel">
+              <h2>Agent Notes</h2>
+              <div id="suggestions" class="muted">Generated SQL, validation notes, and optimization tips appear here.</div>
+            </section>
+
+            <section class="panel results-panel">
+              <div class="panel-header compact">
+                <div>
+                  <h2>Query Results</h2>
+                  <p id="resultMeta">No query executed.</p>
+                </div>
+              </div>
+              <div id="resultArea" class="empty-state">Results will appear here.</div>
+            </section>
+          </section>
+        </section>
+
+        <aside class="schema-rail panel">
+          <section id="mssqlConnectionPanel" class="mssql-connection hidden">
+            <p class="eyebrow">dynamic MSSQL login</p>
+            <h2>Connect SQL Server</h2>
+            <div class="connection-grid">
+              <label>Host<input id="mssqlHost" type="text" placeholder="localhost or server.database.windows.net" /></label>
+              <label>Port<input id="mssqlPort" type="number" placeholder="1433" /></label>
+              <label>Database<input id="mssqlDatabase" type="text" placeholder="Database name" /></label>
+              <label>User ID<input id="mssqlUsername" type="text" placeholder="sa or username" autocomplete="username" /></label>
+              <label>Password<input id="mssqlPassword" type="password" placeholder="Password" autocomplete="current-password" /></label>
+              <label>Driver<input id="mssqlDriver" type="text" value="ODBC Driver 17 for SQL Server" /></label>
+            </div>
+            <label class="check-row"><input id="mssqlTrustCert" type="checkbox" checked /> Trust server certificate</label>
+            <button id="connectMssqlBtn" class="connect-btn">Connect MSSQL</button>
+            <p id="mssqlConnectionStatus" class="muted connection-status">Credentials stay in this browser session.</p>
+          </section>
+
+          <div class="panel-header compact">
+            <div>
+              <h2>Schema</h2>
+              <p>Tables & columns</p>
+            </div>
+            <button id="refreshSchemaBtn" class="icon-btn" title="Refresh schema">↻</button>
+          </div>
+          <div id="schemaList" class="schema-list muted">No schema loaded.</div>
+        </aside>
+      </section>
+    </main>
+
+    <div id="confirmOverlay" class="confirm-overlay hidden" aria-hidden="true">
+      <section class="confirm-card panel" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+        <p class="eyebrow">human validation required</p>
+        <h2 id="confirmTitle">Review SQL before execution</h2>
+        <p class="muted">The agent reviewed the query. Confirm only if it is safe to run on the connected PostgreSQL database.</p>
+        <pre id="confirmSql"></pre>
+        <div id="confirmNotes" class="confirm-notes muted"></div>
+        <div class="button-row confirm-actions">
+          <button id="cancelRunBtn" class="ghost-btn">Cancel</button>
+          <button id="confirmRunBtn">Execute Query</button>
+        </div>
+      </section>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>

@@ -1,8 +1,8 @@
-langchain 
-wikipedia 
-langchain-community 
+langchain
+langchain-community
+langchain-core
 langchain-openai
-langchain-anthropic
 python-dotenv
 pydantic
-duckduckgo-search
+pyodbc
+psycopg2-binary
