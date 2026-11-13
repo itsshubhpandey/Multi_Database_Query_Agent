@@ -6,3 +6,5 @@ python-dotenv
 pydantic
 pyodbc
 psycopg2-binary
+pymysql
+pymongo

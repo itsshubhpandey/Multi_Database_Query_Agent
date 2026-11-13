@@ -11,3 +11,5 @@ pydantic
 pydantic-settings
 python-dotenv
 psycopg2-binary
+pymysql
+pymongo

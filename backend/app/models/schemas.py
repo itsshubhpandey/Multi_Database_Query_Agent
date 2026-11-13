@@ -13,11 +13,12 @@ Intent = Literal[
     "analytics_explanation",
     "schema_question",
 ]
-DatabaseType = Literal["mssql", "postgresql"]
+DatabaseType = Literal["mssql", "postgresql", "mysql", "mongodb"]
 
 
 class DatabaseSelection(BaseModel):
     type: DatabaseType = "postgresql"
+    connection_uri: str = ""
     host: str = ""
     port: int | None = None
     database: str = ""
@@ -25,6 +26,7 @@ class DatabaseSelection(BaseModel):
     password: str = ""
     driver: str = "ODBC Driver 17 for SQL Server"
     trust_server_certificate: bool = True
+    auth_source: str = "admin"
 
 
 class QueryRequest(BaseModel):
@@ -48,12 +50,21 @@ class ChatRequest(BaseModel):
     message: str = Field(..., min_length=1)
     history: list[dict[str, str]] = Field(default_factory=list)
     stream: bool = False
+    current_sql: str = ""
+    approved_sql: str | None = None
     database: DatabaseSelection = Field(default_factory=DatabaseSelection)
 
 
 class SchemaRequest(BaseModel):
     database: DatabaseSelection = Field(default_factory=DatabaseSelection)
     force_refresh: bool = False
+
+
+class ConnectionTestResponse(BaseModel):
+    success: bool
+    database_type: DatabaseType
+    message: str
+    table_count: int = 0
 
 
 class ClassificationResult(BaseModel):
@@ -106,3 +117,20 @@ class SchemaResponse(BaseModel):
     tables: list[SchemaTable] = Field(default_factory=list)
     cached: bool = False
     database_type: DatabaseType = "postgresql"
+
+
+class ToolTrace(BaseModel):
+    name: str
+    endpoint: str
+    status: Literal["completed", "failed"] = "completed"
+
+
+class OrchestrationResponse(BaseModel):
+    success: bool = True
+    intent: str
+    message: str
+    tools: list[ToolTrace] = Field(default_factory=list)
+    sql: str = ""
+    approval_required: bool = False
+    result: QueryExecutionResponse | None = None
+    database_schema: SchemaResponse | None = None

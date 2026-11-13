@@ -113,4 +113,9 @@ def error_handler_node(state: AgentState) -> AgentState:
 
 
 def dialect_name(database_type: str) -> str:
-    return "PostgreSQL" if normalize_database_type(database_type) == "postgresql" else "Microsoft SQL Server"
+    return {
+        "postgresql": "PostgreSQL",
+        "mssql": "Microsoft SQL Server",
+        "mysql": "MySQL",
+        "mongodb": "MongoDB",
+    }[normalize_database_type(database_type)]

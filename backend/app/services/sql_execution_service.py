@@ -7,12 +7,18 @@ from sqlalchemy import text
 from backend.app.config import get_settings
 from backend.app.db.connection import get_connection, normalize_database_type
 from backend.app.models.schemas import QueryExecutionResponse
+from backend.app.services.mongo_execution_service import MongoExecutionService
 from backend.app.utils.sql_safety import validate_sql_safety
 
 
 class SqlExecutionService:
+    def __init__(self) -> None:
+        self._mongo_execution_service = MongoExecutionService()
+
     def execute(self, sql: str, database_type: str = "postgresql", database_config=None) -> QueryExecutionResponse:
         normalized_db = normalize_database_type(database_type)
+        if normalized_db == "mongodb":
+            return self._mongo_execution_service.execute(sql, database_config)
         safe, reason = validate_sql_safety(sql)
         if not safe:
             return QueryExecutionResponse(success=False, query=sql, error=reason, database_type=normalized_db)

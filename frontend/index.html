@@ -3,137 +3,149 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AI SQL Agent Studio</title>
+    <meta name="description" content="Chat with your database using natural language." />
+    <title>SQL Agent</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <main class="workspace-shell">
-      <header class="topbar">
-        <div class="brand-block">
-          <div class="brand-logo">AI</div>
-          <div>
-            <p class="eyebrow">PostgreSQL Agent Workspace</p>
-            <h1>SQL Agent Studio</h1>
-          </div>
-        </div>
-        <div class="top-actions">
-          <label class="db-switcher" for="databaseType">
-            <span>Database</span>
-            <select id="databaseType">
-              <option value="postgresql" selected>PostgreSQL</option>
-              <option value="mssql">MSSQL Server</option>
-            </select>
-          </label>
-          <div id="status" class="status">Ready</div>
+    <div class="app-shell">
+      <header class="app-header">
+        <a class="brand" href="/" aria-label="SQL Agent home">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <ellipse cx="12" cy="5" rx="7" ry="3"></ellipse>
+              <path d="M5 5v6c0 1.7 3.1 3 7 3s7-1.3 7-3V5"></path>
+              <path d="M5 11v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6"></path>
+            </svg>
+          </span>
+          <span>SQL Agent</span>
+        </a>
+        <div class="header-meta">
+          <button id="connectionButton" class="connection-button" type="button" aria-haspopup="dialog">
+            <span id="connectionStatus" class="connection-status"><i></i> PostgreSQL</span>
+            <span class="chevron" aria-hidden="true">⌄</span>
+          </button>
         </div>
       </header>
 
-      <section class="workspace-grid">
-        <aside class="agent-chat panel">
-          <div class="panel-header compact">
-            <div>
-              <p class="eyebrow">shared-memory agent</p>
-              <h2>Agent Chat</h2>
-              <p>Ask in English. The same agent helps write, review, and run SQL.</p>
-            </div>
+      <main id="conversation" class="conversation" aria-live="polite">
+        <section id="welcome" class="welcome">
+          <div class="welcome-mark" aria-hidden="true">✦</div>
+          <h1>How can I help with your data?</h1>
+          <p>Ask a question, explore your schema, generate SQL, or run a database query.</p>
+          <div class="starter-grid" aria-label="Example questions">
+            <button class="starter" data-prompt="What tables are available in my database?">
+              <span>Explore schema</span>
+              <small>What tables are available?</small>
+            </button>
+            <button class="starter" data-prompt="Show the top 10 customers by total revenue">
+              <span>Analyze data</span>
+              <small>Find my top customers</small>
+            </button>
+            <button class="starter" data-prompt="Explain what a database index is and when I should use one">
+              <span>Ask a question</span>
+              <small>Explain database indexes</small>
+            </button>
+            <button class="starter" data-prompt="Write a SQL query to find duplicate email addresses">
+              <span>Generate SQL</span>
+              <small>Find duplicate records</small>
+            </button>
           </div>
-          <div id="chatMessages" class="chat-messages">
-            <div class="message assistant">Hi, I can convert English into PostgreSQL, explain your schema, and remember this session while we work.</div>
-          </div>
-          <div class="chat-input-row">
-            <textarea id="chatInput" rows="3" placeholder="Ask the agent to write SQL, explain results, or fix a query..."></textarea>
-            <button id="sendChatBtn">Send</button>
-          </div>
-        </aside>
-
-        <section class="center-workspace">
-          <section class="prompt-card panel">
-            <div>
-              <p class="eyebrow">English → SQL</p>
-              <h2>Describe what you need, then approve before execution.</h2>
-            </div>
-            <div class="english-box">
-              <input id="englishInput" type="text" value="Show the first 20 rows from a table" />
-              <button id="generateBtn">Generate SQL</button>
-            </div>
-          </section>
-
-          <section class="sql-pad panel">
-            <div class="panel-header editor-heading">
-              <div>
-                <p class="eyebrow">scrollable SQL pad</p>
-                <h2>Query Editor</h2>
-              </div>
-              <div class="button-row">
-                <button id="fixBtn" class="ghost-btn">AI Review</button>
-                <button id="runBtn">Verify & Run</button>
-              </div>
-            </div>
-            <textarea id="sqlEditor" spellcheck="false">SELECT *
-FROM your_table
-LIMIT 100;</textarea>
-          </section>
-
-          <section class="bottom-grid">
-            <section class="panel suggestions-panel">
-              <h2>Agent Notes</h2>
-              <div id="suggestions" class="muted">Generated SQL, validation notes, and optimization tips appear here.</div>
-            </section>
-
-            <section class="panel results-panel">
-              <div class="panel-header compact">
-                <div>
-                  <h2>Query Results</h2>
-                  <p id="resultMeta">No query executed.</p>
-                </div>
-              </div>
-              <div id="resultArea" class="empty-state">Results will appear here.</div>
-            </section>
-          </section>
         </section>
 
-        <aside class="schema-rail panel">
-          <section id="mssqlConnectionPanel" class="mssql-connection hidden">
-            <p class="eyebrow">dynamic MSSQL login</p>
-            <h2>Connect SQL Server</h2>
-            <div class="connection-grid">
-              <label>Host<input id="mssqlHost" type="text" placeholder="localhost or server.database.windows.net" /></label>
-              <label>Port<input id="mssqlPort" type="number" placeholder="1433" /></label>
-              <label>Database<input id="mssqlDatabase" type="text" placeholder="Database name" /></label>
-              <label>User ID<input id="mssqlUsername" type="text" placeholder="sa or username" autocomplete="username" /></label>
-              <label>Password<input id="mssqlPassword" type="password" placeholder="Password" autocomplete="current-password" /></label>
-              <label>Driver<input id="mssqlDriver" type="text" value="ODBC Driver 17 for SQL Server" /></label>
-            </div>
-            <label class="check-row"><input id="mssqlTrustCert" type="checkbox" checked /> Trust server certificate</label>
-            <button id="connectMssqlBtn" class="connect-btn">Connect MSSQL</button>
-            <p id="mssqlConnectionStatus" class="muted connection-status">Credentials stay in this browser session.</p>
-          </section>
+        <div id="messages" class="messages"></div>
+        <div id="conversationEnd" aria-hidden="true"></div>
+      </main>
 
-          <div class="panel-header compact">
-            <div>
-              <h2>Schema</h2>
-              <p>Tables & columns</p>
-            </div>
-            <button id="refreshSchemaBtn" class="icon-btn" title="Refresh schema">↻</button>
-          </div>
-          <div id="schemaList" class="schema-list muted">No schema loaded.</div>
-        </aside>
-      </section>
-    </main>
-
-    <div id="confirmOverlay" class="confirm-overlay hidden" aria-hidden="true">
-      <section class="confirm-card panel" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
-        <p class="eyebrow">human validation required</p>
-        <h2 id="confirmTitle">Review SQL before execution</h2>
-        <p class="muted">The agent reviewed the query. Confirm only if it is safe to run on the connected PostgreSQL database.</p>
-        <pre id="confirmSql"></pre>
-        <div id="confirmNotes" class="confirm-notes muted"></div>
-        <div class="button-row confirm-actions">
-          <button id="cancelRunBtn" class="ghost-btn">Cancel</button>
-          <button id="confirmRunBtn">Execute Query</button>
-        </div>
-      </section>
+      <footer class="composer-region">
+        <form id="chatForm" class="composer">
+          <textarea
+            id="chatInput"
+            rows="1"
+            aria-label="Message SQL Agent"
+            placeholder="Ask anything about your data..."
+            autocomplete="off"
+          ></textarea>
+          <button id="sendButton" class="send-button" type="submit" aria-label="Send message">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 19V5"></path>
+              <path d="m6 11 6-6 6 6"></path>
+            </svg>
+          </button>
+        </form>
+        <p class="composer-hint">SQL Agent can make mistakes. Review generated SQL before running it.</p>
+      </footer>
     </div>
+
+    <dialog id="connectionDialog" class="connection-dialog">
+      <form id="connectionForm" class="connection-form">
+        <header class="dialog-header">
+          <div>
+            <h2>Connect a database</h2>
+            <p>Use saved backend settings, a URI, or individual credentials.</p>
+          </div>
+          <button id="closeConnectionButton" class="dialog-close" type="button" aria-label="Close connection dialog">×</button>
+        </header>
+
+        <label class="field">
+          <span>Database type</span>
+          <select id="databaseType">
+            <option value="postgresql">PostgreSQL</option>
+            <option value="mysql">MySQL</option>
+            <option value="mssql">Microsoft SQL Server</option>
+            <option value="mongodb">MongoDB</option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span>Connection URI <small>optional</small></span>
+          <input id="connectionUri" type="password" placeholder="postgresql://user:password@host:5432/database" autocomplete="off" />
+        </label>
+
+        <div class="field-grid">
+          <label class="field">
+            <span>Host</span>
+            <input id="databaseHost" type="text" placeholder="localhost" autocomplete="off" />
+          </label>
+          <label class="field port-field">
+            <span>Port</span>
+            <input id="databasePort" type="number" placeholder="5432" />
+          </label>
+        </div>
+
+        <label class="field">
+          <span>Database name</span>
+          <input id="databaseName" type="text" placeholder="my_database" autocomplete="off" />
+        </label>
+
+        <div class="field-grid">
+          <label class="field">
+            <span>Username</span>
+            <input id="databaseUsername" type="text" autocomplete="username" />
+          </label>
+          <label class="field">
+            <span>Password</span>
+            <input id="databasePassword" type="password" autocomplete="current-password" />
+          </label>
+        </div>
+
+        <label id="mongoAuthSourceField" class="field hidden">
+          <span>Authentication database</span>
+          <input id="mongoAuthSource" type="text" value="admin" />
+        </label>
+
+        <label id="mssqlDriverField" class="field hidden">
+          <span>ODBC driver</span>
+          <input id="mssqlDriver" type="text" value="ODBC Driver 17 for SQL Server" />
+        </label>
+
+        <p id="connectionFeedback" class="connection-feedback" role="status"></p>
+        <div class="dialog-actions">
+          <button id="cancelConnectionButton" class="dialog-button secondary" type="button">Cancel</button>
+          <button id="testConnectionButton" class="dialog-button" type="submit">Connect</button>
+        </div>
+      </form>
+    </dialog>
 
     <script src="app.js"></script>
   </body>

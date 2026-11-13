@@ -6,17 +6,16 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy.exc import OperationalError, SQLAlchemyError
 
-from backend.app.agents.nodes import dialect_name, english_to_sql_node, schema_service, sql_review_node
+from backend.app.agents.nodes import english_to_sql_node, schema_service, sql_review_node
 from backend.app.db.connection import normalize_database_type
 from backend.app.graph.workflow import sql_agent_graph
-from backend.app.models.schemas import ChatRequest, GenerateRequest, QueryRequest, ReviewRequest, SchemaRequest
-from backend.app.prompts.sql_prompts import DATABASE_QA_PROMPT
-from backend.app.services.ai_service import AiService
+from backend.app.models.schemas import ChatRequest, ConnectionTestResponse, GenerateRequest, QueryRequest, ReviewRequest, SchemaRequest
+from backend.app.orchestration import OrchestrationAgent
 from backend.app.services.sql_execution_service import SqlExecutionService
 
 router = APIRouter()
-ai_service = AiService()
 sql_execution_service = SqlExecutionService()
+orchestration_agent = OrchestrationAgent()
 
 
 @router.post("/query/execute")
@@ -72,17 +71,10 @@ async def generate_query(request: GenerateRequest):
 
 @router.post("/chat")
 async def chat(request: ChatRequest):
+    result = _call_database_action(lambda: orchestration_agent.handle(request))
     if request.stream:
-        return StreamingResponse(_stream_chat(request), media_type="text/event-stream")
-    return _call_database_action(
-        lambda: sql_agent_graph.invoke(
-            {
-                "user_input": request.message,
-                "database_type": request.database.type,
-                "database_config": request.database,
-            }
-        )
-    )
+        return StreamingResponse(_stream_orchestration_result(result), media_type="text/event-stream")
+    return result
 
 
 @router.get("/schema")
@@ -106,18 +98,32 @@ async def post_schema(request: SchemaRequest):
     )
 
 
-async def _stream_chat(request: ChatRequest):
-    try:
-        schema = schema_service.as_prompt_context(database_type=request.database.type, database_config=request.database)
-        prompt = DATABASE_QA_PROMPT.format(schema=schema, dialect=dialect_name(request.database.type))
-        async for token in ai_service.stream(prompt, request.message):
-            yield f"data: {json.dumps({'token': token})}\n\n"
-    except RuntimeError as exc:
-        yield f"data: {json.dumps({'error': str(exc)})}\n\n"
-    except OperationalError:
-        yield "data: {\"error\": \"Database connection failed. Check that the selected database is running, reachable, and that the .env connection URL or submitted connection settings are correct.\"}\n\n"
-    except SQLAlchemyError as exc:
-        yield f"data: {json.dumps({'error': f'Database error: {exc}'})}\n\n"
+@router.post("/connection/test", response_model=ConnectionTestResponse)
+async def test_connection(request: SchemaRequest):
+    schema = _call_database_action(
+        lambda: schema_service.get_schema(
+            database_type=request.database.type,
+            force_refresh=True,
+            database_config=request.database,
+        )
+    )
+    database_label = {
+        "postgresql": "PostgreSQL",
+        "mssql": "Microsoft SQL Server",
+        "mysql": "MySQL",
+        "mongodb": "MongoDB",
+    }[request.database.type]
+    return ConnectionTestResponse(
+        success=True,
+        database_type=request.database.type,
+        message=f"Connected to {database_label}.",
+        table_count=len(schema.tables),
+    )
+
+
+async def _stream_orchestration_result(result):
+    payload = result.model_dump(mode="json") if hasattr(result, "model_dump") else result
+    yield f"data: {json.dumps({'result': payload})}\n\n"
     yield "data: [DONE]\n\n"
 
 

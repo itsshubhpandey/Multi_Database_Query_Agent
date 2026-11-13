@@ -6,6 +6,7 @@ from sqlalchemy import text
 
 from backend.app.config import get_settings
 from backend.app.db.connection import get_connection, normalize_database_type
+from backend.app.db.mongo import get_mongo_database
 from backend.app.models.schemas import SchemaColumn, SchemaResponse, SchemaTable
 
 
@@ -31,6 +32,13 @@ class SchemaService:
             return cached_schema
 
         query = self._schema_query(normalized_db)
+        if normalized_db == "mongodb":
+            response = self._get_mongo_schema(database_config)
+            if use_cache:
+                self._cache[normalized_db] = response
+                self._cache_time[normalized_db] = now
+            return response
+
         tables: dict[tuple[str, str], SchemaTable] = {}
         with get_connection(normalized_db, database_config) as connection:
             for row in connection.execute(query):
@@ -76,6 +84,15 @@ class SchemaService:
                 ORDER BY table_schema, table_name, ordinal_position
                 """
             )
+        if database_type == "mysql":
+            return text(
+                """
+                SELECT TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, DATA_TYPE, IS_NULLABLE
+                FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                ORDER BY TABLE_NAME, ORDINAL_POSITION
+                """
+            )
         return text(
             """
             SELECT TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, DATA_TYPE, IS_NULLABLE
@@ -84,3 +101,42 @@ class SchemaService:
             ORDER BY TABLE_SCHEMA, TABLE_NAME, ORDINAL_POSITION
             """
         )
+
+    @staticmethod
+    def _get_mongo_schema(database_config=None) -> SchemaResponse:
+        database = get_mongo_database(database_config)
+        tables: list[SchemaTable] = []
+        for collection_name in sorted(database.list_collection_names()):
+            field_types: dict[str, set[str]] = {}
+            documents = list(database[collection_name].find({}).limit(20))
+            for document in documents:
+                for field, value in document.items():
+                    field_types.setdefault(field, set()).add(_mongo_type_name(value))
+            columns = [
+                SchemaColumn(
+                    name=field,
+                    type=" | ".join(sorted(types)),
+                    nullable=any(field not in document for document in documents),
+                )
+                for field, types in sorted(field_types.items())
+            ]
+            tables.append(
+                SchemaTable(
+                    schema_name=database.name,
+                    table_name=collection_name,
+                    columns=columns,
+                )
+            )
+        return SchemaResponse(tables=tables, cached=False, database_type="mongodb")
+
+
+def _mongo_type_name(value) -> str:
+    if value is None:
+        return "null"
+    if isinstance(value, bool):
+        return "boolean"
+    if isinstance(value, dict):
+        return "object"
+    if isinstance(value, list):
+        return "array"
+    return type(value).__name__
